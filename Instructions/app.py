@@ -1,22 +1,18 @@
-# Import Flask
-from flask import Flask, jsonify
-
-# Dependencies and Setup
+from flask import Flask, jsonify, render_template
 import numpy as np
 import datetime as dt
-
-# Python SQL Toolkit and Object Relational Mapper
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm.session import scoped_session, sessionmaker
+
 
 ##############################################
 # Database Setup
 ##############################################
 
-engine = create_engine("sqlite:///Resources/hawaii.sqlite", connect_args={"check_same_thread": False}, poolclass=StaticPool, echo=True)
+engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 
 # Reflect Existing Database Into a New Model
 Base = automap_base()
@@ -27,8 +23,12 @@ Base.prepare(engine, reflect=True)
 Measurement = Base.classes.measurement
 Station = Base.classes.station
 
+last_date = dt.date(2017, 8, 23)
+year_prior = last_date - dt.timedelta(days=365)
+
 # Create Session from Python to the DB
-session = Session(engine)
+session_factory = sessionmaker(bind=engine)
+session = scoped_session(session_factory)
 
 ##############################################
 # Flask Setup
@@ -40,60 +40,69 @@ app = Flask(__name__)
 # Flask Routes
 ##############################################
 
-# # Home Route
-# @app.route("/")
-# def welcome():
-#     return """<html>
+# Home Route
+@app.route("/")
+def welcome():
+    """List of all available API Routes."""
+    return (
+        f"Available Routes:<br />"
+        f"<br />"
+        f"/api/v1.0/precipitation<br />"
+        f"/api/v1.0/stations<br />"
+        f"/api/v1.0/tobs<br />"
+        f"/api/v1.0/temp/start/end<br />"
+        )
 
 # Precipitation Route
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    # Convert the query results to a dictionary using 'date' as the Key and 'prcp' as the Value
-    # Calculate the date 1 year ago from the last datapoint in the Database
-    year_prior = dt.date(2017,8,23) - dt.timedelta(days=365)
     # Design a Query to retrieve the last 12 months of precipitation data selecting only the 'date' and 'prcp' values
     precip_data = session.query(Measurement.date, Measurement.prcp).\
-        filter(Measurement.date >= year_prior).\
-        order_by(Measurement.date).all()
-    # Convert list of tuples into a dictionary
-    precip_data_list = dict(precip_data)
+        filter(Measurement.date >= year_prior).all()
+    precip = {}
+    for result in precip_data:
+        precip_list = {result.date: result.prcp, "prcp": result.prcp}
+        precip.update(precip_list)
     # Return JSON representation of the dictionary
-    return jsonify(precip_data_list)
+    return jsonify(precip)
 
 # Station Route
 @app.route("/api/v1.0/stations")
 def stations():
     # Return a JSON list from the dataset
-    stations_all = session.query(Station.station, Station.name).all()
+    stations_all = session.query(Station.station).all()
     # Convert list of tuples into a normal list
-    station_list = list(stations_all)
+    station_dict = list(np.ravel(stations_all))
     # Return JSON list of stations from the dataset
-    return jsonify(station_list)
+    return jsonify(station_dict)
 
 # TOBS Route
 @app.route("/api/v1.0/tobs")
 def tobs():
-    # Query for the dates and temperature observations from a year from the last data point
-    year_prior = dt.date(2017,8,23) - dt.timedelta(days=365)
     # Design a Query to retrieve the last 12 months of precipitation data selecting only the 'date' and 'prcp' values
     tobs_data = session.query(Measurement.date, Measurement.tobs).\
-        filter(Measurement.date >= year_prior).\
-        order_by(Measurement.date).all()
+        filter(Measurement.date >= year_prior).all()
     # Convert list of tuples to a normal list
-    tobs_data_list = list(tobs_data)
+    tobs_dict = list(np.ravel(tobs_data))
     # Return JSON list of temperature observations (tobs) for the previous year
-    return jsonify(tobs_data_list)
+    return jsonify(tobs_dict)
 
-# Start Day Route
-@app.route("/api/v1.0/<start>")
-def start_day(start):
-    start_day = session.query(Measurement.date, func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
-        filter(Measurement.date >= start).\
-        group_by(Measurement.date).all()
-    # Convert list of tuples into a normal list
-    start_day_list = list(start_day)
-    # Return JSON list of min temp, avg temp and max temp for a given start range
-    return jsonify(start_day_list)
+@app.route("/api/v1.0/temp/<start>")
+@app.route("/api/v1.0/temp/<start>/<end>")
+def calc_temps(start, end):
+    if end != "":
+        temp_stats = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), \
+            func.max(Measurement.tobs)).filter(Measurement.date.between(year_prior, last_date)).all()
+        t_stats = list(np.ravel(temp_stats))
+        return jsonify(temp_stats)
 
-# Start-End Day Route
-@app.route("/api/v1.0/<start>/<end>")
+    else:
+        temp_stats = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), \
+            func.max(Measurement.tobs)).filter(Measurement.date > last_date).all()
+        t_stats = list(np.ravel(temp_stats))
+        return jsonify(temp_stats)
+
+
+# Define Main behavior
+if __name__ == '__main__':
+    app.run(debug=True)
