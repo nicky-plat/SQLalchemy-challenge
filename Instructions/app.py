@@ -5,7 +5,7 @@ import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
-from sqlalchemy.orm.session import scoped_session, sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 
 ##############################################
@@ -94,13 +94,13 @@ def calc_temps(start, end):
         temp_stats = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), \
             func.max(Measurement.tobs)).filter(Measurement.date.between(year_prior, last_date)).all()
         t_stats = list(np.ravel(temp_stats))
-        return jsonify(temp_stats)
+        return jsonify(t_stats)
 
     else:
         temp_stats = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), \
             func.max(Measurement.tobs)).filter(Measurement.date > last_date).all()
         t_stats = list(np.ravel(temp_stats))
-        return jsonify(temp_stats)
+        return jsonify(t_stats)
 
 
 # Define Main behavior
