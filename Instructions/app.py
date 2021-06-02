@@ -71,7 +71,7 @@ def precipitation():
 def stations():
     # Return a JSON list from the dataset
     stations_all = session.query(Station.station).all()
-    # Convert list of tuples into a normal list
+    # Create dictonary
     station_dict = list(np.ravel(stations_all))
     # Return JSON list of stations from the dataset
     return jsonify(station_dict)
@@ -82,25 +82,30 @@ def tobs():
     # Design a Query to retrieve the last 12 months of precipitation data selecting only the 'date' and 'prcp' values
     tobs_data = session.query(Measurement.date, Measurement.tobs).\
         filter(Measurement.date >= year_prior).all()
-    # Convert list of tuples to a normal list
+    # Create dictonary
     tobs_dict = list(np.ravel(tobs_data))
     # Return JSON list of temperature observations (tobs) for the previous year
     return jsonify(tobs_dict)
 
+# Start/End Date Route    
 @app.route("/api/v1.0/temp/<start>")
 @app.route("/api/v1.0/temp/<start>/<end>")
 def calc_temps(start, end):
     if end != "":
         temp_stats = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), \
             func.max(Measurement.tobs)).filter(Measurement.date.between(year_prior, last_date)).all()
-        t_stats = list(np.ravel(temp_stats))
-        return jsonify(t_stats)
+        # Create dictonary
+        t_dict = list(np.ravel(temp_stats))
+        # Return JSON
+        return jsonify(t_dict)
 
     else:
         temp_stats = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), \
             func.max(Measurement.tobs)).filter(Measurement.date > last_date).all()
-        t_stats = list(np.ravel(temp_stats))
-        return jsonify(t_stats)
+        # Create dictonary    
+        t_dict = list(np.ravel(temp_stats))
+        # Return JSON
+        return jsonify(t_dict)
 
 
 # Define Main behavior
