@@ -1,7 +1,7 @@
 # SQLAlchemy Homework - Surfs Up!
 
 
-![surfs-up.png](Images/surfs-up.png)
+![surfs-up.png](Instructions/Images/surfs-up.png)
 
 Congratulations! You've decided to treat yourself to a long holiday vacation in Honolulu, Hawaii! To help with your trip planning, you need to do some climate analysis on the area. The following outlines what you need to do.
 
@@ -29,7 +29,7 @@ To begin, use Python and SQLAlchemy to do basic climate analysis and data explor
 
 * Plot the results using the DataFrame `plot` method.
 
-  ![precipitation](Images/precipitation.png)
+  ![precipitation](Instructions/Images/precipitation.png)
 
 * Use Pandas to print the summary statistics for the precipitation data.
 
